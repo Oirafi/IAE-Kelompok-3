@@ -1,12 +1,11 @@
-FROM python:3.12-slim
+FROM php:8.2.19-cli
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN apt-get update && apt-get install -y libzip-dev zip unzip
+RUN docker-php-ext-install pdo pdo_mysql
 
 COPY . .
 
 EXPOSE 3005
-
-CMD ["python", "app.py"]
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=3005"]

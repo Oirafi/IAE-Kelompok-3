@@ -21,6 +21,7 @@ services:
       - "3000:3000"
     volumes:
       - ./gateway:/app
+      - /app/node_modules
     networks:
       - badminton_network
     depends_on:
@@ -42,7 +43,7 @@ services:
       - DB_USER=root
       - DB_PASSWORD=root
       - DB_NAME=auth_db
-      - JWT_SECRET=supersecretkey
+      - JWT_SECRET=supersecretkey_supersecretkey_32
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
     volumes:
@@ -83,10 +84,11 @@ services:
       - DB_USER=root
       - DB_PASSWORD=root
       - DB_NAME=booking_db
-      - JWT_SECRET=supersecretkey
+      - JWT_SECRET=supersecretkey_supersecretkey_32
       - COURT_SERVICE_URL=http://court-service:3002
     volumes:
       - ./booking-service:/app
+      - /app/node_modules
     networks:
       - badminton_network
     depends_on:
@@ -104,7 +106,7 @@ services:
       - DB_USER=root
       - DB_PASSWORD=root
       - DB_NAME=equipment_db
-      - JWT_SECRET=supersecretkey
+      - JWT_SECRET=supersecretkey_supersecretkey_32
     volumes:
       - ./equipment-service:/app
     networks:
@@ -120,11 +122,13 @@ services:
       - "3005:3005"
     environment:
       - PORT=3005
+      - DB_CONNECTION=mysql
       - DB_HOST=mysql
-      - DB_USER=root
+      - DB_PORT=3306
+      - DB_USERNAME=root
       - DB_PASSWORD=root
-      - DB_NAME=payment_db
-      - JWT_SECRET=supersecretkey
+      - DB_DATABASE=payment_db
+      - JWT_SECRET=supersecretkey_supersecretkey_32
       - MIDTRANS_SERVER_KEY=${MIDTRANS_SERVER_KEY}
       - MIDTRANS_CLIENT_KEY=${MIDTRANS_CLIENT_KEY}
       - BOOKING_SERVICE_URL=http://booking-service:3003
