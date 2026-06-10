@@ -1,0 +1,143 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - badminton_network
+
+  gateway:
+    build: ./gateway
+    container_name: gateway
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./gateway:/app
+    networks:
+      - badminton_network
+    depends_on:
+      - auth-service
+      - court-service
+      - booking-service
+      - equipment-service
+      - payment-service
+
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - DB_HOST=mysql
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_NAME=auth_db
+      - JWT_SECRET=supersecretkey
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+    volumes:
+      - ./auth-service:/app
+    networks:
+      - badminton_network
+    depends_on:
+      - mysql
+
+  court-service:
+    build: ./court-service
+    container_name: court-service
+    restart: always
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      - DB_HOST=mysql
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_NAME=court_db
+    volumes:
+      - ./court-service:/app
+    networks:
+      - badminton_network
+    depends_on:
+      - mysql
+
+  booking-service:
+    build: ./booking-service
+    container_name: booking-service
+    restart: always
+    ports:
+      - "3003:3003"
+    environment:
+      - PORT=3003
+      - DB_HOST=mysql
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_NAME=booking_db
+      - JWT_SECRET=supersecretkey
+      - COURT_SERVICE_URL=http://court-service:3002
+    volumes:
+      - ./booking-service:/app
+    networks:
+      - badminton_network
+    depends_on:
+      - mysql
+
+  equipment-service:
+    build: ./equipment-service
+    container_name: equipment-service
+    restart: always
+    ports:
+      - "3004:3004"
+    environment:
+      - PORT=3004
+      - DB_HOST=mysql
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_NAME=equipment_db
+      - JWT_SECRET=supersecretkey
+    volumes:
+      - ./equipment-service:/app
+    networks:
+      - badminton_network
+    depends_on:
+      - mysql
+
+  payment-service:
+    build: ./payment-service
+    container_name: payment-service
+    restart: always
+    ports:
+      - "3005:3005"
+    environment:
+      - PORT=3005
+      - DB_HOST=mysql
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_NAME=payment_db
+      - JWT_SECRET=supersecretkey
+      - MIDTRANS_SERVER_KEY=${MIDTRANS_SERVER_KEY}
+      - MIDTRANS_CLIENT_KEY=${MIDTRANS_CLIENT_KEY}
+      - BOOKING_SERVICE_URL=http://booking-service:3003
+    volumes:
+      - ./payment-service:/app
+    networks:
+      - badminton_network
+    depends_on:
+      - mysql
+
+networks:
+  badminton_network:
+    driver: bridge
+
+volumes:
+  mysql_data:
