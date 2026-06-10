@@ -2,7 +2,7 @@ import os
 import time
 import jwt
 import requests as http
-import midtranspy
+import midtransclient
 from datetime import datetime
 from functools import wraps
 from dotenv import load_dotenv
@@ -29,7 +29,7 @@ db.init_app(app)
 BOOKING_SERVICE_URL = os.getenv('BOOKING_SERVICE_URL', 'http://booking-service:3003')
 JWT_SECRET = os.getenv('JWT_SECRET', 'supersecretkey')
 
-snap = midtranspy.Snap(
+snap = midtransclient.Snap(
     is_production=False,
     server_key=os.getenv('MIDTRANS_SERVER_KEY', ''),
     client_key=os.getenv('MIDTRANS_CLIENT_KEY', '')

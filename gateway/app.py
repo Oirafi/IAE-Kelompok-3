@@ -54,11 +54,13 @@ for prefix, target in SERVICES.items():
 
     app.add_url_rule(
         prefix,
+        endpoint=f"proxy_exact_{prefix.replace('/', '_')}",
         view_func=make_proxy(prefix, target),
         methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']
     )
     app.add_url_rule(
         prefix + '/<path:subpath>',
+        endpoint=f"proxy_path_{prefix.replace('/', '_')}",
         view_func=make_proxy(prefix, target),
         methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']
     )
