@@ -3,4 +3,12 @@
 __pycache__/
 *.py[cod]
 *$py.class
-auth-service/__pycache__/models.cpython-312.pyc
+
+# Node
+node_modules/
+package-lock.json
+
+# PHP / Laravel
+vendor/
+storage/
+.phpunit.result.cache
