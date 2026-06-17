@@ -71,7 +71,7 @@ const typeDefs = gql`
   # ─── Equipment Types ────────────────────────────────────────────────────────
 
   type Equipment {
-    id: Int
+    _id: String
     name: String
     image: String
     rental_price: Int
@@ -79,9 +79,9 @@ const typeDefs = gql`
   }
 
   type CartItem {
-    id: Int
+    _id: String
     user_id: Int
-    equipment_id: Int
+    equipment_id: String
     quantity: Int
     Equipment: Equipment
   }
@@ -131,7 +131,7 @@ const typeDefs = gql`
 
     # Equipments
     equipments: [Equipment]
-    equipment(id: Int!): Equipment
+    equipment(id: String!): Equipment
     cart: [CartItem]
 
     # Payments
@@ -157,10 +157,10 @@ const typeDefs = gql`
 
     # Equipments
     createEquipment(name: String!, image: String, rental_price: Int!, stock: Int): Equipment
-    updateEquipment(id: Int!, name: String, image: String, rental_price: Int, stock: Int): Equipment
-    deleteEquipment(id: Int!): MessageResponse
-    addToCart(equipment_id: Int!, quantity: Int): CartItem
-    removeFromCart(cart_id: Int!): MessageResponse
+    updateEquipment(id: String!, name: String, image: String, rental_price: Int, stock: Int): Equipment
+    deleteEquipment(id: String!): MessageResponse
+    addToCart(equipment_id: String!, quantity: Int): CartItem
+    removeFromCart(cart_id: String!): MessageResponse
 
     # Payments
     createPayment(booking_id: Int!): PaymentResponse

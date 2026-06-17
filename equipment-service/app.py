@@ -4,7 +4,8 @@ from functools import wraps
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from models import db, Equipment, Cart
+from pymongo import MongoClient
+from models import serialize_doc, to_object_id
 
 load_dotenv()
 
@@ -13,14 +14,16 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = (
-    f"mysql+pymysql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"
-    f"@{os.getenv('DB_HOST')}/{os.getenv('DB_NAME')}"
-)
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = os.getenv('JWT_SECRET', 'supersecretkey')
+# MongoDB Connection
+MONGO_HOST = os.getenv('MONGO_HOST', 'mongo')
+MONGO_PORT = int(os.getenv('MONGO_PORT', 27017))
+MONGO_DB = os.getenv('MONGO_DB', 'equipment_db')
 
-db.init_app(app)
+client = MongoClient(host=MONGO_HOST, port=MONGO_PORT)
+db = client[MONGO_DB]
+
+equipments_col = db['equipments']
+carts_col = db['carts']
 
 JWT_SECRET = os.getenv('JWT_SECRET', 'supersecretkey')
 
@@ -53,7 +56,8 @@ def health():
 @app.route('/', methods=['GET'])
 def get_all_equipments():
     try:
-        return jsonify([e.to_dict() for e in Equipment.query.all()]), 200
+        equipments = list(equipments_col.find())
+        return jsonify([serialize_doc(e) for e in equipments]), 200
     except Exception as e:
         return jsonify({'message': 'Server error', 'error': str(e)}), 500
 
@@ -62,59 +66,63 @@ def get_all_equipments():
 def create_equipment():
     try:
         data = request.get_json()
-        equipment = Equipment(
-            name=data.get('name'),
-            image=data.get('image'),
-            rental_price=data.get('rental_price') or data.get('price_per_hour'),
-            stock=data.get('stock', 0)
-        )
-        db.session.add(equipment)
-        db.session.commit()
-        return jsonify(equipment.to_dict()), 201
+        equipment = {
+            'name': data.get('name'),
+            'image': data.get('image'),
+            'rental_price': data.get('rental_price') or data.get('price_per_hour'),
+            'stock': data.get('stock', 0)
+        }
+        result = equipments_col.insert_one(equipment)
+        equipment['_id'] = str(result.inserted_id)
+        return jsonify(equipment), 201
     except Exception as e:
-        db.session.rollback()
         return jsonify({'message': 'Server error', 'error': str(e)}), 500
 
 
-@app.route('/<int:equipment_id>', methods=['GET'])
+@app.route('/<equipment_id>', methods=['GET'])
 def get_equipment_by_id(equipment_id):
     try:
-        equipment = Equipment.query.get(equipment_id)
+        oid = to_object_id(equipment_id)
+        if not oid:
+            return jsonify({'message': 'Invalid equipment ID'}), 400
+        equipment = equipments_col.find_one({'_id': oid})
         if not equipment:
             return jsonify({'message': 'Equipment not found'}), 404
-        return jsonify(equipment.to_dict()), 200
+        return jsonify(serialize_doc(equipment)), 200
     except Exception as e:
         return jsonify({'message': 'Server error', 'error': str(e)}), 500
 
 
-@app.route('/<int:equipment_id>', methods=['PUT'])
+@app.route('/<equipment_id>', methods=['PUT'])
 def update_equipment(equipment_id):
     try:
-        equipment = Equipment.query.get(equipment_id)
-        if not equipment:
-            return jsonify({'message': 'Equipment not found'}), 404
+        oid = to_object_id(equipment_id)
+        if not oid:
+            return jsonify({'message': 'Invalid equipment ID'}), 400
         data = request.get_json()
-        for key, value in data.items():
-            if hasattr(equipment, key):
-                setattr(equipment, key, value)
-        db.session.commit()
-        return jsonify(equipment.to_dict()), 200
+        update_fields = {k: v for k, v in data.items() if k != '_id'}
+        result = equipments_col.update_one({'_id': oid}, {'$set': update_fields})
+        if result.matched_count == 0:
+            return jsonify({'message': 'Equipment not found'}), 404
+        equipment = equipments_col.find_one({'_id': oid})
+        return jsonify(serialize_doc(equipment)), 200
     except Exception as e:
-        db.session.rollback()
         return jsonify({'message': 'Server error', 'error': str(e)}), 500
 
 
-@app.route('/<int:equipment_id>', methods=['DELETE'])
+@app.route('/<equipment_id>', methods=['DELETE'])
 def delete_equipment(equipment_id):
     try:
-        equipment = Equipment.query.get(equipment_id)
-        if not equipment:
+        oid = to_object_id(equipment_id)
+        if not oid:
+            return jsonify({'message': 'Invalid equipment ID'}), 400
+        result = equipments_col.delete_one({'_id': oid})
+        if result.deleted_count == 0:
             return jsonify({'message': 'Equipment not found'}), 404
-        db.session.delete(equipment)
-        db.session.commit()
+        # Also remove cart items referencing this equipment
+        carts_col.delete_many({'equipment_id': equipment_id})
         return jsonify({'message': 'Equipment deleted'}), 200
     except Exception as e:
-        db.session.rollback()
         return jsonify({'message': 'Server error', 'error': str(e)}), 500
 
 # ─── Cart Routes ───────────────────────────────────────────────────────────────
@@ -123,8 +131,17 @@ def delete_equipment(equipment_id):
 @authenticate
 def get_cart():
     try:
-        cart = Cart.query.filter_by(user_id=request.user['id']).all()
-        return jsonify([c.to_dict() for c in cart]), 200
+        user_id = request.user['id']
+        cart_items = list(carts_col.find({'user_id': user_id}))
+        result = []
+        for item in cart_items:
+            item_dict = serialize_doc(item)
+            # Populate equipment data
+            equip_oid = to_object_id(item.get('equipment_id'))
+            equipment = equipments_col.find_one({'_id': equip_oid}) if equip_oid else None
+            item_dict['Equipment'] = serialize_doc(equipment) if equipment else None
+            result.append(item_dict)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({'message': 'Server error', 'error': str(e)}), 500
 
@@ -137,44 +154,59 @@ def add_to_cart():
         equipment_id = data.get('equipment_id')
         quantity = data.get('quantity', 1)
 
-        equipment = Equipment.query.get(equipment_id)
-        if not equipment or equipment.stock < quantity:
+        equip_oid = to_object_id(equipment_id)
+        if not equip_oid:
+            return jsonify({'message': 'Invalid equipment ID'}), 400
+
+        equipment = equipments_col.find_one({'_id': equip_oid})
+        if not equipment or equipment.get('stock', 0) < quantity:
             return jsonify({'message': 'Equipment out of stock or not found'}), 400
 
-        cart_item = Cart.query.filter_by(user_id=request.user['id'], equipment_id=equipment_id).first()
-        if cart_item:
-            cart_item.quantity += quantity
-        else:
-            cart_item = Cart(user_id=request.user['id'], equipment_id=equipment_id, quantity=quantity)
-            db.session.add(cart_item)
+        user_id = request.user['id']
+        existing = carts_col.find_one({'user_id': user_id, 'equipment_id': equipment_id})
 
-        db.session.commit()
-        return jsonify(cart_item.to_dict()), 201
+        if existing:
+            carts_col.update_one(
+                {'_id': existing['_id']},
+                {'$inc': {'quantity': quantity}}
+            )
+            existing = carts_col.find_one({'_id': existing['_id']})
+            result = serialize_doc(existing)
+        else:
+            cart_item = {
+                'user_id': user_id,
+                'equipment_id': equipment_id,
+                'quantity': quantity
+            }
+            insert_result = carts_col.insert_one(cart_item)
+            cart_item['_id'] = str(insert_result.inserted_id)
+            result = cart_item
+
+        result['Equipment'] = serialize_doc(equipment)
+        return jsonify(result), 201
     except Exception as e:
-        db.session.rollback()
         return jsonify({'message': 'Server error', 'error': str(e)}), 500
 
 
-@app.route('/cart/<int:cart_id>', methods=['DELETE'])
+@app.route('/cart/<cart_id>', methods=['DELETE'])
 @authenticate
 def remove_from_cart(cart_id):
     try:
-        cart_item = Cart.query.get(cart_id)
-        if not cart_item or cart_item.user_id != request.user['id']:
+        oid = to_object_id(cart_id)
+        if not oid:
+            return jsonify({'message': 'Invalid cart ID'}), 400
+        cart_item = carts_col.find_one({'_id': oid})
+        if not cart_item or cart_item.get('user_id') != request.user['id']:
             return jsonify({'message': 'Item not found in cart'}), 404
-        db.session.delete(cart_item)
-        db.session.commit()
+        carts_col.delete_one({'_id': oid})
         return jsonify({'message': 'Item removed from cart'}), 200
     except Exception as e:
-        db.session.rollback()
         return jsonify({'message': 'Server error', 'error': str(e)}), 500
 
 # ─── Run ──────────────────────────────────────────────────────────────────────
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-        print('Equipment database synced')
+    print(f'Connected to MongoDB: {MONGO_HOST}:{MONGO_PORT}/{MONGO_DB}')
     PORT = int(os.getenv('PORT', 3004))
     print(f'equipment-service running on port {PORT}')
     app.run(host='0.0.0.0', port=PORT)
