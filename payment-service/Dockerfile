@@ -1,8 +1,8 @@
-FROM php:8.2.19-cli
+FROM php:8.2-cli-alpine
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y libzip-dev zip unzip
+RUN apk add --no-cache libzip-dev zip unzip
 RUN docker-php-ext-install pdo pdo_mysql
 
 COPY . .

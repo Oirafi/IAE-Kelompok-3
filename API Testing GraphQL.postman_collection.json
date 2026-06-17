@@ -1,0 +1,153 @@
+{
+	"info": {
+		"_postman_id": "sewa-lapangan-graphql-collection",
+		"name": "Sewa Lapangan API & GraphQL",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Health Checks (REST)",
+			"item": [
+				{
+					"name": "Gateway Health",
+					"request": { "method": "GET", "url": { "raw": "http://localhost:3000/health", "host": ["localhost"], "port": "3000", "path": ["health"] } }
+				},
+				{
+					"name": "Auth Health",
+					"request": { "method": "GET", "url": { "raw": "http://localhost:3000/api/auth/health", "host": ["localhost"], "port": "3000", "path": ["api", "auth", "health"] } }
+				},
+				{
+					"name": "Court Health",
+					"request": { "method": "GET", "url": { "raw": "http://localhost:3000/api/courts/health", "host": ["localhost"], "port": "3000", "path": ["api", "courts", "health"] } }
+				},
+				{
+					"name": "Booking Health",
+					"request": { "method": "GET", "url": { "raw": "http://localhost:3000/api/bookings/health", "host": ["localhost"], "port": "3000", "path": ["api", "bookings", "health"] } }
+				},
+				{
+					"name": "Equipment Health",
+					"request": { "method": "GET", "url": { "raw": "http://localhost:3000/api/equipments/health", "host": ["localhost"], "port": "3000", "path": ["api", "equipments", "health"] } }
+				},
+				{
+					"name": "Payment Health",
+					"request": { "method": "GET", "url": { "raw": "http://localhost:3000/api/payments/health", "host": ["localhost"], "port": "3000", "path": ["api", "payments", "health"] } }
+				}
+			]
+		},
+		{
+			"name": "2. Auth Service (MySQL)",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [ { "key": "Content-Type", "value": "application/json" } ],
+						"body": { "mode": "graphql", "graphql": { "query": "mutation Register($name: String!, $email: String!, $password: String!, $phone: String) {\n  register(name: $name, email: $email, password: $password, phone: $phone) {\n    message\n    token\n    user {\n      id\n      name\n      email\n    }\n  }\n}", "variables": "{\n  \"name\": \"Test User\",\n  \"email\": \"testuser@example.com\",\n  \"password\": \"secret123\",\n  \"phone\": \"08123456789\"\n}" } },
+						"url": { "raw": "http://localhost:3000/graphql", "host": ["localhost"], "port": "3000", "path": ["graphql"] }
+					}
+				},
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [ { "key": "Content-Type", "value": "application/json" } ],
+						"body": { "mode": "graphql", "graphql": { "query": "mutation Login($email: String!, $password: String!) {\n  login(email: $email, password: $password) {\n    message\n    token\n    user {\n      id\n      name\n      email\n    }\n  }\n}", "variables": "{\n  \"email\": \"testuser@example.com\",\n  \"password\": \"secret123\"\n}" } },
+						"url": { "raw": "http://localhost:3000/graphql", "host": ["localhost"], "port": "3000", "path": ["graphql"] }
+					}
+				},
+				{
+					"name": "Get Profile",
+					"request": {
+						"method": "POST",
+						"header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{TOKEN}}" } ],
+						"body": { "mode": "graphql", "graphql": { "query": "query GetProfile {\n  profile {\n    id\n    name\n    email\n    role\n  }\n}", "variables": "{}" } },
+						"url": { "raw": "http://localhost:3000/graphql", "host": ["localhost"], "port": "3000", "path": ["graphql"] }
+					}
+				}
+			]
+		},
+		{
+			"name": "3. Court Service (PostgreSQL)",
+			"item": [
+				{
+					"name": "Create Court",
+					"request": {
+						"method": "POST",
+						"header": [ { "key": "Content-Type", "value": "application/json" } ],
+						"body": { "mode": "graphql", "graphql": { "query": "mutation CreateCourt($name: String!, $price_per_hour: Int!, $description: String) {\n  createCourt(name: $name, price_per_hour: $price_per_hour, description: $description) {\n    id\n    name\n    price_per_hour\n  }\n}", "variables": "{\n  \"name\": \"Lapangan Futsal Baru\",\n  \"price_per_hour\": 100000,\n  \"description\": \"Lapangan rumput sintetis\"\n}" } },
+						"url": { "raw": "http://localhost:3000/graphql", "host": ["localhost"], "port": "3000", "path": ["graphql"] }
+					}
+				},
+				{
+					"name": "Get All Courts",
+					"request": {
+						"method": "POST",
+						"header": [ { "key": "Content-Type", "value": "application/json" } ],
+						"body": { "mode": "graphql", "graphql": { "query": "query GetAllCourts {\n  courts {\n    id\n    name\n    price_per_hour\n    status\n  }\n}", "variables": "{}" } },
+						"url": { "raw": "http://localhost:3000/graphql", "host": ["localhost"], "port": "3000", "path": ["graphql"] }
+					}
+				}
+			]
+		},
+		{
+			"name": "4. Equipment Service (MongoDB)",
+			"item": [
+				{
+					"name": "Create Equipment",
+					"request": {
+						"method": "POST",
+						"header": [ { "key": "Content-Type", "value": "application/json" } ],
+						"body": { "mode": "graphql", "graphql": { "query": "mutation CreateEquipment($name: String!, $rental_price: Int!, $stock: Int) {\n  createEquipment(name: $name, rental_price: $rental_price, stock: $stock) {\n    _id\n    name\n    rental_price\n    stock\n  }\n}", "variables": "{\n  \"name\": \"Bola Futsal Specs\",\n  \"rental_price\": 15000,\n  \"stock\": 10\n}" } },
+						"url": { "raw": "http://localhost:3000/graphql", "host": ["localhost"], "port": "3000", "path": ["graphql"] }
+					}
+				},
+				{
+					"name": "Get All Equipments",
+					"request": {
+						"method": "POST",
+						"header": [ { "key": "Content-Type", "value": "application/json" } ],
+						"body": { "mode": "graphql", "graphql": { "query": "query GetAllEquipments {\n  equipments {\n    _id\n    name\n    rental_price\n    stock\n  }\n}", "variables": "{}" } },
+						"url": { "raw": "http://localhost:3000/graphql", "host": ["localhost"], "port": "3000", "path": ["graphql"] }
+					}
+				}
+			]
+		},
+		{
+			"name": "5. Booking Service (MySQL)",
+			"item": [
+				{
+					"name": "Create Booking",
+					"request": {
+						"method": "POST",
+						"header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{TOKEN}}" } ],
+						"body": { "mode": "graphql", "graphql": { "query": "mutation CreateBooking($court_id: Int!, $booking_date: String!, $start_time: String!, $end_time: String!) {\n  createBooking(court_id: $court_id, booking_date: $booking_date, start_time: $start_time, end_time: $end_time) {\n    message\n    booking {\n      id\n      booking_code\n      total_price\n      status\n    }\n  }\n}", "variables": "{\n  \"court_id\": 1,\n  \"booking_date\": \"2026-10-10\",\n  \"start_time\": \"14:00\",\n  \"end_time\": \"16:00\"\n}" } },
+						"url": { "raw": "http://localhost:3000/graphql", "host": ["localhost"], "port": "3000", "path": ["graphql"] }
+					}
+				},
+				{
+					"name": "Get All Bookings",
+					"request": {
+						"method": "POST",
+						"header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{TOKEN}}" } ],
+						"body": { "mode": "graphql", "graphql": { "query": "query GetAllBookings {\n  bookings {\n    id\n    booking_code\n    status\n    total_price\n    booking_date\n  }\n}", "variables": "{}" } },
+						"url": { "raw": "http://localhost:3000/graphql", "host": ["localhost"], "port": "3000", "path": ["graphql"] }
+					}
+				}
+			]
+		},
+		{
+			"name": "6. Payment Service (MySQL)",
+			"item": [
+				{
+					"name": "Create Payment",
+					"request": {
+						"method": "POST",
+						"header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{TOKEN}}" } ],
+						"body": { "mode": "graphql", "graphql": { "query": "mutation CreatePayment($booking_id: Int!) {\n  createPayment(booking_id: $booking_id) {\n    message\n    transaction_id\n    snap_token\n    redirect_url\n  }\n}", "variables": "{\n  \"booking_id\": 1\n}" } },
+						"url": { "raw": "http://localhost:3000/graphql", "host": ["localhost"], "port": "3000", "path": ["graphql"] }
+					}
+				}
+			]
+		}
+	]
+}

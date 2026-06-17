@@ -11,7 +11,7 @@ class Court(db.Model):
     description = db.Column(db.Text, nullable=True)
     image = db.Column(db.String(500), nullable=True)
     price_per_hour = db.Column(db.Integer, nullable=False)
-    status = db.Column(db.Enum('active', 'maintenance'), default='active')
+    status = db.Column(db.Enum('active', 'maintenance', name='court_status'), default='active')
 
     schedules = db.relationship('CourtSchedule', backref='court', lazy=True, cascade='all, delete-orphan')
 

@@ -14,7 +14,7 @@ class User(db.Model):
     phone = db.Column(db.String(50), nullable=True)
     avatar = db.Column(db.String(500), nullable=True)
     google_id = db.Column(db.String(255), nullable=True)
-    role = db.Column(db.Enum('admin', 'user'), default='user')
+    role = db.Column(db.Enum('admin', 'user', name='user_role'), default='user')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
